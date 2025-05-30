@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Descontos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Cores da Paleta */
+        :root {
+            --cor-primaria-roxo: #5F2AD3;
+            --cor-secundaria-magenta: #A4328C;
+            --cor-secundaria-ciano: #32BCB8;
+            --cor-destaque-laranja: #FF8C47;
+            --cor-destaque-amarelo: #FFC837;
+            --cor-cinza-escuro: #282828;
+            --cor-cinza-medio: #757575;
+            --cor-cinza-claro: #E6E6E6;
+            --cor-cinza-fundo: #f8f9fa;
+            --cor-branco: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--cor-cinza-fundo);
+            color: var(--cor-cinza-escuro);
+        }
+        .header-gradient {
+            background-image: linear-gradient(to right, var(--cor-primaria-roxo), #4e22b0);
+        }
+
+        .step-card {
+            transition: all 0.3s ease-in-out;
+            border-left-width: 4px;
+            background-color: var(--cor-branco);
+        }
+        .step-card.expanded {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .step-card .details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .step-card.expanded .details {
+            max-height: 1000px; /* Aumentado para acomodar mais texto se necessário */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .section-title {
+            color: var(--cor-primaria-roxo);
+        }
+        .highlight-problem {
+            background-color: #fffbeb;
+            border-left-color: var(--cor-destaque-amarelo);
+        }
+        .highlight-data {
+            background-color: #f0fdfa;
+            border-left-color: var(--cor-secundaria-ciano);
+        }
+        .icon-bg {
+            background-color: var(--cor-cinza-claro);
+            color: var(--cor-primaria-roxo);
+        }
+        .kpi-card {
+            background-color: var(--cor-branco);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            text-align: center;
+        }
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .kpi-label {
+            font-size: 0.9rem;
+            color: var(--cor-cinza-medio);
+            margin-top: 0.5rem;
+        }
+        .table-header-bg {
+            background-color: #f3e8ff;
+        }
+        .text-color-concedido { color: var(--cor-secundaria-magenta); }
+        .text-color-futuro { color: var(--cor-destaque-laranja); }
+        .text-color-tipos { color: var(--cor-secundaria-ciano); }
+
+        .border-step1 { border-left-color: var(--cor-primaria-roxo); }
+        .text-step1 { color: var(--cor-primaria-roxo); }
+        .border-step2 { border-left-color: var(--cor-secundaria-ciano); }
+        .text-step2 { color: var(--cor-secundaria-ciano); }
+        .border-step3 { border-left-color: var(--cor-secundaria-magenta); }
+        .text-step3 { color: var(--cor-secundaria-magenta); }
+
+        .sql-script-container {
+            background-color: #282c34; /* Fundo escuro para código */
+            color: #abb2bf; /* Cor clara para texto do código */
+            padding: 1rem;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out, padding 0.5s ease-out;
+            margin-top: 1rem;
+        }
+        .sql-script-container.visible {
+            max-height: 600px; /* Altura máxima quando visível */
+            opacity: 1;
+            padding: 1rem;
+        }
+        .sql-script-container pre {
+            white-space: pre-wrap;       /* Quebra linhas longas */
+            word-wrap: break-word;       /* Quebra palavras longas */
+        }
+        .btn-primary {
+            background-color: var(--cor-primaria-roxo);
+            color: var(--cor-branco);
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #4e22b0;
+        }
+        .btn-secondary {
+            background-color: var(--cor-secundaria-ciano);
+            color: var(--cor-branco);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-left: 0.5rem;
+        }
+        .btn-secondary:hover {
+            background-color: #29a3a0;
+        }
+        .copy-feedback {
+            display: inline-block;
+            margin-left: 0.5rem;
+            color: var(--cor-secundaria-ciano);
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .copy-feedback.visible {
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="header-gradient text-white py-12 shadow-lg">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold">
+                <i class="fas fa-chart-bar mr-3"></i>Análise de Descontos
+            </h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="desafio" class="mb-16 p-6 rounded-lg shadow-md highlight-problem">
+            <h2 class="text-3xl font-semibold mb-4 text-center section-title">
+                <i class="fas fa-file-alt mr-2" style="color: var(--cor-destaque-amarelo);"></i>Análise de Descontos Recorrentes
+            </h2>
+            <div class="text-gray-700 text-lg text-center">
+                <p>
+                    Fizemos uma análise de todos os descontos recorrentes concedidos e programados.
+                </p>
+            </div>
+        </section>
+
+        <section id="destaques-analise" class="mb-16 p-8 rounded-lg shadow-lg highlight-data">
+            <h2 class="text-3xl font-semibold mb-8 text-center section-title">
+                <i class="fas fa-chart-pie mr-2" style="color: var(--cor-secundaria-ciano);"></i>Principais Destaques da Análise
+            </h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="kpi-card">
+                    <div class="kpi-value text-color-concedido">R$ 1,62 mi</div>
+                    <div class="kpi-label">Total Excedente Já Concedido</div>
+                    <p class="text-xs text-gray-500 mt-1">(Valor que já impactou o caixa)</p>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value text-color-futuro">R$ 182 mil</div>
+                    <div class="kpi-label">Total Excedente Futuro</div>
+                     <p class="text-xs text-gray-500 mt-1">(Oportunidade de economia imediata)</p>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value text-color-tipos">21</div>
+                    <div class="kpi-label">Tipos de Descontos Recorrentes com Excedentes</div>
+                    <p class="text-xs text-gray-500 mt-1">(Número de regras de desconto a revisar)</p>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center md:text-left">Top 5 Descontos com Maior Impacto (Excedente Concedido):</h3>
+                <div class="overflow-x-auto bg-white rounded-lg shadow">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="table-header-bg">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição do Desconto</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Excedente Concedido</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Excedente Futuro</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Último Mês Problemático</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="tabela-descontos-corpo">
+                            </tbody>
+                    </table>
+                </div>
+                 <p class="text-xs text-gray-500 mt-2 text-center md:text-right"><i>*Tabela detalha os 5 principais casos. KPIs refletem totais gerais.</i></p>
+            </div>
+        </section>
+
+        <section id="analise" class="mb-16">
+            <h2 class="text-3xl font-semibold mb-10 text-center section-title">
+                <i class="fas fa-sitemap mr-2"></i>Passos da Análise
+            </h2>
+
+            <div class="flex flex-col md:flex-row justify-around items-center mb-12 space-y-6 md:space-y-0 md:space-x-4">
+                <div class="flex flex-col items-center text-center p-4 rounded-lg w-full md:w-1/3">
+                    <div class="icon-bg rounded-full p-4 mb-3 shadow">
+                        <i class="fas fa-file-contract text-3xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-xl" style="color: var(--cor-primaria-roxo);">Passo 1</h3>
+                    <p class="text-gray-600">Entender as Regras</p>
+                </div>
+                <div class="hidden md:block text-4xl self-center" style="color: var(--cor-primaria-roxo);">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                 <div class="md:hidden text-4xl self-center transform rotate-90" style="color: var(--cor-primaria-roxo);">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="flex flex-col items-center text-center p-4 rounded-lg w-full md:w-1/3">
+                     <div class="icon-bg rounded-full p-4 mb-3 shadow">
+                        <i class="fas fa-search-plus text-3xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-xl" style="color: var(--cor-secundaria-ciano);">Passo 2</h3>
+                    <p class="text-gray-600">Identificar Excedentes</p>
+                </div>
+                 <div class="hidden md:block text-4xl self-center" style="color: var(--cor-primaria-roxo);">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="md:hidden text-4xl self-center transform rotate-90" style="color: var(--cor-primaria-roxo);">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="flex flex-col items-center text-center p-4 rounded-lg w-full md:w-1/3">
+                    <div class="icon-bg rounded-full p-4 mb-3 shadow">
+                        <i class="fas fa-chart-line text-3xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-xl" style="color: var(--cor-secundaria-magenta);">Passo 3</h3>
+                    <p class="text-gray-600">Mapear Impactos</p>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div id="step1" class="step-card p-6 rounded-lg shadow-sm border-step1 cursor-pointer" onclick="toggleStep('step1')">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-2xl font-semibold text-step1">
+                            <i class="fas fa-file-signature mr-3"></i>Etapa 1: Entendendo as Entrelinhas dos Descontos
+                        </h3>
+                        <i class="fas fa-chevron-down transform transition-transform text-step1"></i>
+                    </div>
+                    <div class="details text-gray-600 mt-2">
+                        <p class="mb-2"><strong>O que acontece?</strong> Primeiro, a análise "lê" e "interpreta" as descrições de cada tipo de desconto para entender suas regras.</p>
+                        <ul class="list-disc list-inside mb-2 pl-4 space-y-1">
+                            <li>Exemplo: "Bônus 50% nas 2 primeiras mensalidades" <i class="fas fa-arrow-right text-sm mx-1"></i> desconto válido por <strong>2 meses</strong>.</li>
+                            <li>Exemplo: "Desconto 1ª mensalidade" <i class="fas fa-arrow-right text-sm mx-1"></i> desconto válido por <strong>1 mês</strong>.</li>
+                        </ul>
+                        <p class="mb-2"><strong>Como funciona?</strong> Uma lógica inteligente é aplicada para extrair automaticamente a "duração permitida" do desconto, mesmo que esteja escrita de formas variadas.</p>
+                        <p class="font-semibold text-step1"><strong>Resultado:</strong> Temos uma compreensão clara da validade correta de cada tipo de desconto.</p>
+                    </div>
+                </div>
+
+                <div id="step2" class="step-card p-6 rounded-lg shadow-sm border-step2 cursor-pointer" onclick="toggleStep('step2')">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-2xl font-semibold text-step2">
+                            <i class="fas fa-user-clock mr-3"></i>Etapa 2: Identificando Aplicações Além do Combinado
+                        </h3>
+                        <i class="fas fa-chevron-down transform transition-transform text-step2"></i>
+                    </div>
+                    <div class="details text-gray-600 mt-2">
+                        <p class="mb-2"><strong>O que acontece?</strong> Para cada contrato, a análise verifica por quantos meses um determinado desconto já foi efetivamente aplicado.</p>
+                        <p class="mb-2"><strong>A Verificação:</strong> Ela compara o total de meses em que o desconto <em>foi</em> concedido com o total de meses que ele <em>deveria</em> ter sido concedido (conforme definido na Etapa 1).</p>
+                        <p class="mb-2 font-semibold" style="color: var(--cor-secundaria-magenta);"><i class="fas fa-bell mr-1"></i><strong>Alerta de Excesso!</strong> Se um desconto foi aplicado por 5 meses, mas a regra era para 3 meses, a análise sinaliza esses 2 meses como "excedentes".</p>
+                        <p class="font-semibold text-step2"><strong>Cálculo do Impacto:</strong> Além de identificar os meses extras, a análise calcula o valor financeiro que foi descontado a mais nesse período.</p>
+                    </div>
+                </div>
+
+                <div id="step3" class="step-card p-6 rounded-lg shadow-sm border-step3 cursor-pointer" onclick="toggleStep('step3')">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-2xl font-semibold text-step3">
+                           <i class="fas fa-history mr-3"></i>Etapa 3: Mapeando o Histórico e o Futuro dos Descontos
+                        </h3>
+                        <i class="fas fa-chevron-down transform transition-transform text-step3"></i>
+                    </div>
+                    <div class="details text-gray-600 mt-2">
+                        <p class="mb-2"><strong>O que acontece?</strong> A análise organiza uma visão completa de todos os descontos: tanto aqueles que já foram efetivamente concedidos (em faturas enviadas) quanto aqueles que estão programados para faturas futuras.</p>
+                        <p class="mb-2"><strong>Ordem dos Fatos:</strong> Para cada contrato e tipo de desconto, ela estabelece a sequência em que as parcelas do desconto foram (ou serão) aplicadas (Ex: 1ª, 2ª, 3ª aplicação...).</p>
+                        <p class="font-semibold text-step3"><strong>Visão Detalhada:</strong> Isso permite identificar com precisão qual parcela do desconto foi a primeira a ultrapassar o limite permitido e quais parcelas futuras também estão incorretas.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="proximos-passos" class="mb-12">
+            <h2 class="text-3xl font-semibold mb-8 text-center section-title">
+                <i class="fas fa-rocket mr-2"></i>Próximos Passos
+            </h2>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <div class="icon-bg rounded-full p-3 mr-4"><i class="fas fa-tools text-xl"></i></div>
+                        <h4 class="text-xl font-semibold" style="color: var(--cor-primaria-roxo);">Corrigir Imediatamente</h4>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                     <div class="flex items-center mb-3">
+                        <div class="icon-bg rounded-full p-3 mr-4"><i class="fas fa-tasks text-xl"></i></div>
+                        <h4 class="text-xl font-semibold" style="color: var(--cor-primaria-roxo);">Revisar Processos</h4>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <div class="icon-bg rounded-full p-3 mr-4"><i class="fas fa-shield-alt text-xl"></i></div>
+                        <h4 class="text-xl font-semibold" style="color: var(--cor-primaria-roxo);">Estabelecer Controles</h4>
+                    </div>
+                    <p class="text-gray-600">Para um alerta preventivo e proativo.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <div class="icon-bg rounded-full p-3 mr-4"><i class="fas fa-file-invoice-dollar text-xl"></i></div>
+                        <h4 class="text-xl font-semibold" style="color: var(--cor-primaria-roxo);">Analisar demais descontos de faturamento</h4>
+                    </div>
+                     <p class="text-gray-600">Descontos concedidos nas mensalidades.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <div class="icon-bg rounded-full p-3 mr-4"><i class="fas fa-handshake text-xl"></i></div>
+                        <h4 class="text-xl font-semibold" style="color: var(--cor-primaria-roxo);">Analisar descontos concedidos na negociação</h4>
+                    </div>
+                    <p class="text-gray-600">Análise em andamento para identificar oportunidades.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="detalhes-tecnicos" class="mb-12 p-8 rounded-lg shadow-lg bg-white">
+            <h2 class="text-3xl font-semibold mb-6 text-center section-title">
+                <i class="fas fa-code mr-2" style="color: var(--cor-secundaria-ciano);"></i>Detalhes Técnicos da Análise
+            </h2>
+            <div class="text-center">
+                <button id="toggleSqlScriptBtn" class="btn-primary">
+                    <i class="fas fa-eye mr-2"></i>Visualizar Script SQL da Análise
+                </button>
+                <button id="copySqlScriptBtn" class="btn-secondary" style="display: none;">
+                    <i class="fas fa-copy mr-2"></i>Copiar Script
+                </button>
+                <span id="copyFeedback" class="copy-feedback">Copiado!</span>
+            </div>
+            <div id="sqlScriptContainer" class="sql-script-container">
+                <pre><code id="sqlScriptContent">
+-- CTE para extrair o número de meses da descrição do desconto
+WITH numero_desconto AS (
+    SELECT DISTINCT
+        d.descricao,
+        TRY_CAST(
+            CASE
+                -- Casos específicos de texto para número (mais prioritários)
+                WHEN d.descricao LIKE '%primeira mensalidade%' THEN '1'
+                WHEN d.descricao LIKE '%segunda mensalidade%' THEN '2'
+                WHEN d.descricao LIKE '%terceira mensalidade%' THEN '3'
+                WHEN d.descricao LIKE '%unica mensalidade%' THEN '1'
+
+                -- Padrões como "nas X primeiras mensalidades" ou "sobre as X primeiras mensalidades"
+                WHEN PATINDEX('%nas [0-9]% primeiras mensalidades%', d.descricao) > 0 THEN
+                    SUBSTRING(
+                        d.descricao,
+                        PATINDEX('%nas [0-9]%', d.descricao) + LEN('nas '),
+                        CHARINDEX(' ', d.descricao + ' ', PATINDEX('%nas [0-9]%', d.descricao) + LEN('nas ')) - (PATINDEX('%nas [0-9]%', d.descricao) + LEN('nas '))
+                    )
+                WHEN PATINDEX('%sobre as [0-9]% primeiras mensalidades%', d.descricao) > 0 THEN
+                    SUBSTRING(
+                        d.descricao,
+                        PATINDEX('%sobre as [0-9]%', d.descricao) + LEN('sobre as '),
+                        CHARINDEX(' ', d.descricao + ' ', PATINDEX('%sobre as [0-9]%', d.descricao) + LEN('sobre as ')) - (PATINDEX('%sobre as [0-9]%', d.descricao) + LEN('sobre as '))
+                    )
+                -- Padrão "Xªmensalidade" (sem espaço)
+                WHEN PATINDEX('%[0-9]ªmensalidade%', d.descricao) > 0 THEN
+                    REPLACE(
+                        SUBSTRING(
+                            d.descricao,
+                            PATINDEX('%[0-9]ªmensalidade%', d.descricao),
+                            CHARINDEX('ªmensalidade', d.descricao, PATINDEX('%[0-9]ªmensalidade%', d.descricao)) - PATINDEX('%[0-9]ªmensalidade%', d.descricao) + 1
+                        ),
+                        'ª', ''
+                    )
+                -- Padrão "Xª mensalidade" (com espaço)
+                WHEN PATINDEX('%[0-9]ª mensalidade%', d.descricao) > 0 THEN
+                    REPLACE(
+                        SUBSTRING(
+                            d.descricao,
+                            PATINDEX('%[0-9]ª mensalidade%', d.descricao),
+                            CHARINDEX('ª mensalidade', d.descricao, PATINDEX('%[0-9]ª mensalidade%', d.descricao)) - PATINDEX('%[0-9]ª mensalidade%', d.descricao) + 1
+                        ),
+                        'ª', ''
+                    )
+                -- Padrão: número antes de " meses"
+                WHEN CHARINDEX(' meses', d.descricao) > 0 THEN
+                    REVERSE(
+                        SUBSTRING(
+                            REVERSE(RTRIM(LEFT(d.descricao, CHARINDEX(' meses', d.descricao) - 1))),
+                            1,
+                            CHARINDEX(' ', REVERSE(RTRIM(LEFT(d.descricao, CHARINDEX(' meses', d.descricao) - 1))) + ' ') - 1
+                        )
+                    )
+                -- Padrão: número antes de " mensalidades" (plural)
+                WHEN CHARINDEX(' mensalidades', d.descricao) > 0 THEN
+                    REVERSE(
+                        SUBSTRING(
+                            REVERSE(RTRIM(LEFT(d.descricao, CHARINDEX(' mensalidades', d.descricao) - 1))),
+                            1,
+                            CHARINDEX(' ', REVERSE(RTRIM(LEFT(d.descricao, CHARINDEX(' mensalidades', d.descricao) - 1))) + ' ') - 1
+                        )
+                    )
+                -- Padrão: número antes de " mensalidade" (singular)
+                WHEN CHARINDEX(' mensalidade', d.descricao) > 0 THEN
+                    REVERSE(
+                        SUBSTRING(
+                            REVERSE(RTRIM(LEFT(d.descricao, CHARINDEX(' mensalidade', d.descricao) - 1))),
+                            1,
+                            CHARINDEX(' ', REVERSE(RTRIM(LEFT(d.descricao, CHARINDEX(' mensalidade', d.descricao) - 1))) + ' ') - 1
+                        )
+                    )
+                ELSE NULL
+            END
+        AS INT) AS numero_meses
+    FROM
+        balanco_financeiro.desconto d
+    WHERE
+        d.descricao NOT LIKE '%/%'
+        AND d.descricao NOT LIKE '%Nação%'
+        AND (d.descricao LIKE '%meses%' OR d.descricao LIKE '%mensalidade%')
+),
+-- CTE para identificar contratos, descrições e valores de desconto que excederam o número de meses permitido
+descontos_fora_politica_identifica_excedente AS (
+    SELECT
+        d.contrato_id,
+        n.descricao,
+        d.valor, 
+        CASE WHEN n.descricao LIKE '%202%' AND d.mes_referencia >= '2024-01-01' THEN 0 ELSE n.numero_meses END AS numero_meses,
+        COUNT(0) AS qtd_total_aplicada_neste_grupo,
+        (COUNT(0) - CASE WHEN n.descricao LIKE '%202%' AND d.mes_referencia >= '2024-01-01' THEN 0 ELSE n.numero_meses END) AS qt_excedente_neste_grupo,
+        (COUNT(0) - CASE WHEN n.descricao LIKE '%202%' AND d.mes_referencia >= '2024-01-01' THEN 0 ELSE n.numero_meses END) * d.valor AS vl_excedente_neste_grupo
+    FROM
+        balanco_financeiro.desconto d
+    INNER JOIN numero_desconto n ON n.descricao = d.descricao
+    LEFT JOIN balanco_financeiro.fatura f ON f.id = d.fatura_id
+    WHERE
+        f.enviado_faturamento = 1
+        OR FORMAT(TRY_CAST(d.mes_referencia AS DATE), 'yyyy-MM') >= FORMAT(GETDATE(), 'yyyy-MM')
+    GROUP BY
+        d.contrato_id,
+        n.descricao,
+        d.valor,
+        CASE WHEN n.descricao LIKE '%202%' AND d.mes_referencia >= '2024-01-01' THEN 0 ELSE n.numero_meses END
+    HAVING
+        COUNT(0) > CASE WHEN n.descricao LIKE '%202%' AND d.mes_referencia >= '2024-01-01' THEN 0 ELSE n.numero_meses END
+),
+-- CTE para numerar todos os descontos individuais que foram faturados,
+-- particionando por contrato, descrição e valor, e ordenando pelo mês de referência.
+descontos_faturados_numerados AS (
+    SELECT
+        d.*, 
+        f.enviado_faturamento,
+        d.mes_referencia AS fatura_mes_referencia, 
+        nd.numero_meses AS limite_meses_permitido, 
+        CASE WHEN f.enviado_faturamento = 1 THEN 'Concedido' ELSE 'Futuro' END AS tipo_desconto,
+        ROW_NUMBER() OVER (
+            PARTITION BY d.contrato_id, d.descricao, d.valor
+            ORDER BY d.mes_referencia ASC, d.id ASC
+        ) AS ordem_aplicacao_desconto
+    FROM
+        balanco_financeiro.desconto d
+    LEFT JOIN balanco_financeiro.fatura f ON f.id = d.fatura_id
+    INNER JOIN numero_desconto nd ON nd.descricao = d.descricao
+    WHERE
+        f.enviado_faturamento = 1
+        OR FORMAT(TRY_CAST(d.mes_referencia AS DATE), 'yyyy-MM') >= FORMAT(GETDATE(), 'yyyy-MM')
+)
+-- Query final: Seleciona os detalhes dos descontos individuais que excederam o limite
+SELECT
+    dfn.descricao,
+    SUM(CASE WHEN tipo_desconto = 'Concedido' THEN dfn.valor ELSE 0 END) AS valor_desconto_excedente_concedido,
+    SUM(CASE WHEN tipo_desconto <> 'Concedido' THEN dfn.valor ELSE 0 END) AS valor_desconto_excedente_futuro,
+    MAX(dfn.fatura_mes_referencia) AS ultimo_mes_referencia
+FROM
+    descontos_faturados_numerados dfn
+INNER JOIN descontos_fora_politica_identifica_excedente dfpie -- Alias para a CTE renomeada
+    ON dfn.contrato_id = dfpie.contrato_id
+    AND dfn.descricao = dfpie.descricao
+    AND dfn.valor = dfpie.valor
+WHERE
+    dfn.ordem_aplicacao_desconto > dfn.limite_meses_permitido
+    AND dfn.valor > 0
+GROUP BY dfn.descricao
+ORDER BY 2 DESC
+                </code></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let currentlyExpandedStep = null;
+
+        function toggleStep(stepId) {
+            const stepElement = document.getElementById(stepId);
+            const iconElement = stepElement.querySelector('.fa-chevron-down');
+
+            if (currentlyExpandedStep && currentlyExpandedStep !== stepElement) {
+                currentlyExpandedStep.classList.remove('expanded');
+                currentlyExpandedStep.querySelector('.fa-chevron-down').classList.remove('rotate-180');
+            }
+
+            if (stepElement.classList.contains('expanded')) {
+                stepElement.classList.remove('expanded');
+                iconElement.classList.remove('rotate-180');
+                currentlyExpandedStep = null;
+            } else {
+                stepElement.classList.add('expanded');
+                iconElement.classList.add('rotate-180');
+                currentlyExpandedStep = stepElement;
+            }
+        }
+
+        const toggleSqlScriptBtn = document.getElementById('toggleSqlScriptBtn');
+        const sqlScriptContainer = document.getElementById('sqlScriptContainer');
+        const sqlScriptContent = document.getElementById('sqlScriptContent');
+        const copySqlScriptBtn = document.getElementById('copySqlScriptBtn');
+        const copyFeedback = document.getElementById('copyFeedback');
+
+        toggleSqlScriptBtn.addEventListener('click', () => {
+            sqlScriptContainer.classList.toggle('visible');
+            if (sqlScriptContainer.classList.contains('visible')) {
+                toggleSqlScriptBtn.innerHTML = '<i class="fas fa-eye-slash mr-2"></i>Ocultar Script SQL';
+                copySqlScriptBtn.style.display = 'inline-block';
+            } else {
+                toggleSqlScriptBtn.innerHTML = '<i class="fas fa-eye mr-2"></i>Visualizar Script SQL da Análise';
+                copySqlScriptBtn.style.display = 'none';
+                copyFeedback.classList.remove('visible');
+            }
+        });
+
+        copySqlScriptBtn.addEventListener('click', () => {
+            const scriptText = sqlScriptContent.innerText;
+            const textArea = document.createElement("textarea");
+            textArea.value = scriptText;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                copyFeedback.textContent = 'Copiado!';
+                copyFeedback.style.color = 'var(--cor-secundaria-ciano)';
+                copyFeedback.classList.add('visible');
+            } catch (err) {
+                console.error('Erro ao copiar o script SQL: ', err);
+                copyFeedback.textContent = 'Erro ao copiar!';
+                copyFeedback.style.color = 'var(--cor-secundaria-magenta)';
+                copyFeedback.classList.add('visible');
+            }
+            document.body.removeChild(textArea);
+            setTimeout(() => {
+                copyFeedback.classList.remove('visible');
+            }, 2000);
+        });
+
+        // Função para abreviar números
+        function abreviarValor(valor) {
+            const num = parseFloat(valor);
+            if (isNaN(num)) return valor; // Retorna o original se não for número
+
+            if (num >= 1000000) {
+                return `R$ ${(num / 1000000).toFixed(1).replace('.', ',')} mi`;
+            }
+            if (num >= 1000) {
+                 // Se for exatamente X mil, não mostra decimal. Ex: 1000 -> 1 mil, 1100 -> 1,1 mil
+                const valorMil = num / 1000;
+                return `R$ ${valorMil.toFixed(valorMil % 1 === 0 ? 0 : 1).replace('.', ',')} mil`;
+            }
+            // Para valores menores que 1000, formata como moeda BRL com duas casas decimais
+            return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // Função para formatar data para MM/YYYY
+        function formatarData(dataStr) {
+            if (!dataStr) return 'N/A';
+            try {
+                // Tenta tratar formatos comuns como YYYY-MM-DD ou YYYY-MM-DD HH:MM:SS
+                const dataObj = new Date(dataStr.substring(0,10) + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso
+                if (isNaN(dataObj.getTime())) { // Se a data for inválida
+                     // Tenta tratar como MM/DD/YYYY ou DD/MM/YYYY se for o caso
+                     const partes = dataStr.split(/[-\/]/);
+                     if (partes.length === 3) {
+                        let ano, mes;
+                        if (partes[0].length === 4) { // YYYY-MM-DD
+                            ano = partes[0];
+                            mes = partes[1];
+                        } else if (partes[2].length === 4) { // MM-DD-YYYY ou DD-MM-YYYY
+                            ano = partes[2];
+                            mes = partes[0].length === 2 ? partes[0] : partes[1]; // assume MM-DD-YYYY ou DD-MM-YYYY
+                        }
+                        if (ano && mes) {
+                             return `${mes.padStart(2, '0')}/${ano}`;
+                        }
+                     }
+                    return dataStr; // Retorna original se não conseguir formatar
+                }
+                const mes = (dataObj.getMonth() + 1).toString().padStart(2, '0');
+                const ano = dataObj.getFullYear();
+                return `${mes}/${ano}`;
+            } catch (e) {
+                return dataStr; // Retorna original em caso de erro
+            }
+        }
+
+
+        // Dados do CSV (substituir pelos dados reais lidos do CSV)
+        // Colunas esperadas: descricao;valor_desconto_excedente_concedido;valor_desconto_excedente_futuro;ultimo_mes_referencia
+        const dadosCSV = [
+            { descricao: "Bônus 50% sobre as 3 primeiras mensalidades - Black Week 2021", valor_concedido: 804392.43, valor_futuro: 1096.43, ultimo_mes: "2025-06-01" },
+            { descricao: "PLANO ANUAL COM DESCONTO DE 100% NA ADESAO E 50% NAS 3 PRIMEIRAS MENSALIDADES", valor_concedido: 157975.80, valor_futuro: 0, ultimo_mes: "2024-12-01" },
+            { descricao: "Desc Progressivo Black Week + Bônus + 10% OFF (6 MESES)", valor_concedido: 104931.99, valor_futuro: 104931.99, ultimo_mes: "2025-06-01" },
+            { descricao: "Bônus Indicação Cliente (10% OFF POR 3 MESES)", valor_concedido: 79804.86, valor_futuro: 5689.06, ultimo_mes: "2025-06-01" },
+            { descricao: "Bônus 30% de desconto sobre as 6 primeiras mensalidades", valor_concedido: 65943.84, valor_futuro: 65943.84, ultimo_mes: "2025-06-01" }
+        ];
+
+        const tabelaCorpo = document.getElementById('tabela-descontos-corpo');
+        tabelaCorpo.innerHTML = ''; // Limpa o corpo da tabela antes de adicionar novas linhas
+
+        dadosCSV.forEach(item => {
+            const linha = `
+                <tr>
+                    <td class="px-6 py-4 whitespace-normal text-sm font-medium text-gray-900">"${item.descricao}"</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-color-concedido font-semibold">${abreviarValor(item.valor_concedido)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-color-futuro font-semibold">${abreviarValor(item.valor_futuro)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatarData(item.ultimo_mes)}</td>
+                </tr>
+            `;
+            tabelaCorpo.innerHTML += linha;
+        });
+
+    </script>
+
+</body>
+</html>
